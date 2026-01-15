@@ -15,6 +15,7 @@ const adminRoutes = require("./routes/admin.routes");
 const ticketRoutes = require("./routes/ticket.routes");
 const apartmentRoutes = require("./routes/apartment.routes");
 const rideRoutes = require("./routes/ride.routes");
+const healthRoutes = require("./routes/health.routes");
 
 const app = express();
 
@@ -64,6 +65,7 @@ app.use("/api/kyc", require("./routes/kyc.routes"));
 app.use("/api/chatrooms", require("./routes/chatroom.routes"));
 app.use("/api/roles", require("./routes/roles.routes"));
 app.use("/api/blogs", require("./routes/blog.routes"));
+app.use("/", healthRoutes);
 
 /* ──────────────────────
    SOCKET.IO SETUP
