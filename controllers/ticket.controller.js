@@ -865,6 +865,7 @@ exports.exportTicketData = async (req, res) => {
 /**
  * GET USER'S TICKETS (MY TICKETS)
  */
+// In your ticket.controller.js - ensure getUserTickets returns proper data
 exports.getUserTickets = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -876,7 +877,7 @@ exports.getUserTickets = async (req, res) => {
 
     const tickets = await TicketPurchase.findAll({
       where: {
-        buyerEmail: user.email // Match tickets by user's email
+        buyerEmail: user.email
       },
       include: [
         {
@@ -893,17 +894,17 @@ exports.getUserTickets = async (req, res) => {
       order: [["createdAt", "DESC"]]
     });
 
-    // Format tickets to match frontend expectations
+    // Format tickets properly
     const formattedTickets = tickets.map(ticket => ({
       id: ticket.id,
-      eventName: ticket.TicketCategory?.Event?.title,
-      categoryName: ticket.TicketCategory?.name,
       serialCode: ticket.serialCode,
-      price: ticket.TicketCategory?.price,
-      isUsed: ticket.isUsed,
       buyerName: ticket.buyerName,
       buyerEmail: ticket.buyerEmail,
       buyerPhone: ticket.buyerPhone,
+      isUsed: ticket.isUsed,
+      price: ticket.TicketCategory?.price, // Price in kobo
+      categoryName: ticket.TicketCategory?.name,
+      eventName: ticket.TicketCategory?.Event?.title,
       eventDate: ticket.TicketCategory?.Event?.eventDate,
       eventLocation: ticket.TicketCategory?.Event?.location,
       eventFlyerUrl: ticket.TicketCategory?.Event?.flyerUrl,
