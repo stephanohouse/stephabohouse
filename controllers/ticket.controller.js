@@ -320,6 +320,19 @@ exports.verifyPayment = async (req, res) => {
   try {
     const { reference } = req.body;
 
+    // CHECK FOR EXISTING TICKET FIRST - PREVENT DUPLICATES
+    const existingTicket = await TicketPurchase.findOne({
+      where: { paymentReference: reference }
+    });
+    
+    if (existingTicket) {
+      return res.json({
+        message: "Payment already verified",
+        ticket: existingTicket,
+        alreadyExists: true
+      });
+    }
+
     const { data } = await paystack.get(`/transaction/verify/${reference}`);
     if (data.status !== "success") {
       return res.status(400).json({ message: "Payment not successful" });
@@ -378,7 +391,6 @@ exports.verifyPayment = async (req, res) => {
     res.status(500).json({ message: "Payment verification failed" });
   }
 };
-
 /**
  * =========================
  * TICKET VERIFICATION & MANAGEMENT
