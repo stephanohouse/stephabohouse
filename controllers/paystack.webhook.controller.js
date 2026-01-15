@@ -11,22 +11,29 @@ exports.handlePaystackWebhook = async (req, res) => {
   try {
     const secret = process.env.PAYSTACK_SECRET_KEY;
 
+    /* ─────────────────────────────
+       VERIFY PAYSTACK SIGNATURE
+    ───────────────────────────── */
     const hash = crypto
       .createHmac("sha512", secret)
-      .update(JSON.stringify(req.body))
+      .update(req.body) // ✅ RAW BUFFER (DO NOT STRINGIFY)
       .digest("hex");
 
     if (hash !== req.headers["x-paystack-signature"]) {
       return res.status(401).send("Invalid signature");
     }
 
-    const event = req.body;
+    /* ─────────────────────────────
+       PARSE EVENT
+    ───────────────────────────── */
+    const event = JSON.parse(req.body.toString());
 
     if (event.event !== "charge.success") {
       return res.sendStatus(200);
     }
 
-    const { reference, metadata } = event.data;
+    const reference = event.data.reference;
+    const metadata = event.data.metadata || {};
 
     /* ─────────────────────────────
        APARTMENT BOOKINGS
@@ -45,6 +52,8 @@ exports.handlePaystackWebhook = async (req, res) => {
           "🏠 *New apartment booking confirmed & paid*"
         );
       }
+
+      return res.sendStatus(200);
     }
 
     /* ─────────────────────────────
@@ -64,22 +73,28 @@ exports.handlePaystackWebhook = async (req, res) => {
           "🚗 *New ride booking confirmed & paid*"
         );
       }
+
+      return res.sendStatus(200);
     }
 
     /* ─────────────────────────────
        TICKET PURCHASES
     ───────────────────────────── */
     if (reference.startsWith("TCK-")) {
+      if (!metadata.categoryId) {
+        return res.sendStatus(200);
+      }
+
       const category = await TicketCategory.findByPk(metadata.categoryId);
       if (!category || category.quantity <= 0) {
         return res.sendStatus(200);
       }
 
-      const ticket = await TicketPurchase.findOne({
+      const existingTicket = await TicketPurchase.findOne({
         where: { paymentReference: reference },
       });
 
-      if (!ticket) {
+      if (!existingTicket) {
         await TicketPurchase.create({
           buyerName: metadata.buyerName,
           buyerEmail: metadata.buyerEmail,
@@ -98,6 +113,8 @@ exports.handlePaystackWebhook = async (req, res) => {
           `🎫 *New ticket purchase confirmed*\nCategory: ${category.name}`
         );
       }
+
+      return res.sendStatus(200);
     }
 
     return res.sendStatus(200);
